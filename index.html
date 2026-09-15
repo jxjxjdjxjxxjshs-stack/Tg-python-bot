@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Моя Консоль Кода</title>
-    <!-- Подключаем официальный скрипт Телеграма -->
     <script src="https://telegram.org"></script>
     <style>
         body {
@@ -45,33 +44,46 @@
 <body>
 
     <h3>💻 Введи свой Python-код:</h3>
-    
     <textarea id="codeArea" placeholder="print('Привет, мир!')"></textarea>
-    
     <button id="runBtn" onclick="runCode()">Запустить код 🚀</button>
 
     <script>
-        // Инициализируем WebApp Telegram
         let tg = window.Telegram.WebApp;
-        tg.expand(); // Развернуть на весь экран
+        tg.expand();
 
         function runCode() {
-            try {
-                let userCode = document.getElementById("codeArea").value;
-                
-                if (!userCode || !userCode.trim()) {
-                    alert("Пожалуйста, напиши хоть какой-то код!");
-                    return;
-                }
-
-                // Отправляем текст боту в чат
-                tg.sendData(userCode);
-                
-                // Закрываем мини-приложение
-                tg.close();
-            } catch (error) {
-                alert("Произошла ошибка WebApp: " + error.message);
+            let userCode = document.getElementById("codeArea").value;
+            if (!userCode || !userCode.trim()) {
+                alert("Пожалуйста, напиши код!");
+                return;
             }
+
+            // Получаем ID пользователя Telegram, чтобы бот знал, кому слать ответ
+            let userId = tg.initDataUnsafe?.user?.id;
+            if (!userId) {
+                alert("Ошибка: Не удалось определить ваш Telegram ID. Откройте приложение внутри бота.");
+                return;
+            }
+
+            let btn = document.getElementById("runBtn");
+            btn.innerText = "Выполняется... ⏳";
+            btn.disabled = true;
+
+            // Отправляем код напрямую на ваш сервер Render по интернету
+            fetch('/run-code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: userCode, user_id: userId })
+            })
+            .then(() => {
+                // Закрываем приложение — результат уже летит в чат боту!
+                tg.close();
+            })
+            .catch(err => {
+                alert("Ошибка отправки кода на сервер");
+                btn.innerText = "Запустить код 🚀";
+                btn.disabled = false;
+            });
         }
     </script>
 </body>
