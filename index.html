@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Моя Консоль Кода</title>
+    <title>Python IDE</title>
+    <!-- Подключаем скрипт Telegram и Pyodide для запуска Python -->
     <script src="https://telegram.org"></script>
+    <script src="https://jsdelivr.net"></script>
     <style>
         body {
             background-color: #1e1e1e;
@@ -12,7 +14,15 @@
             font-family: 'Courier New', Courier, monospace;
             padding: 15px;
             margin: 0;
+            overflow: hidden;
         }
+        .screen {
+            display: none;
+            width: 100%;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        .active { display: block; }
         h3 { color: #4fc1ff; text-align: center; margin-top: 0; }
         textarea {
             width: 100%;
@@ -39,34 +49,110 @@
             cursor: pointer;
         }
         button:active { background-color: #1177bb; }
+        
+        /* Экран вывода */
+        .back-btn {
+            background-color: #333333;
+            color: #4fc1ff;
+            text-align: left;
+            padding: 8px 12px;
+            margin-bottom: 15px;
+            font-weight: normal;
+            width: auto;
+            display: inline-block;
+        }
+        #console-output {
+            width: 100%;
+            height: calc(100vh - 120px);
+            background-color: #000000;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            box-sizing: border-box;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            border: 1px solid #333;
+        }
     </style>
 </head>
 <body>
 
-    <h3>💻 Введи свой Python-код:</h3>
-    <textarea id="codeArea" placeholder="print('Привет, мир!')"></textarea>
-    <button id="runBtn" onclick="runCode()">Запустить код 🚀</button>
+    <!-- ЭКРАН 1: ВВОД КОДА -->
+    <div id="editor-screen" class="screen active">
+        <h3>💻 Введи свой Python-код:</h3>
+        <textarea id="codeArea" placeholder="print('Привет!')&#10;a = 5&#10;b = 10&#10;print('Сумма:', a + b)"></textarea>
+        <button id="runBtn" onclick="runPython()">Запустить код 🚀</button>
+    </div>
+
+    <!-- ЭКРАН 2: РЕЗУЛЬТАТ ВЫПОЛНЕНИЯ -->
+    <div id="output-screen" class="screen">
+        <button class="back-btn" onclick="goBack()">⬅ Назад к коду</button>
+        <h3>📝 Результат выполнения:</h3>
+        <div id="console-output">Загрузка консоли...</div>
+    </div>
 
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
+        
+        let pyodideInstance = null;
 
-        function runCode() {
+        // Фоновая загрузка интерпретатора Python
+        asyncinitPython();
+        async function initPython() {
+            try {
+                pyodideInstance = await loadPyodide();
+                console.log("Python готов!");
+            } catch (e) {
+                alert("Ошибка инициализации Python");
+            }
+        }
+
+        async function runPython() {
             let userCode = document.getElementById("codeArea").value;
-            if (!userCode || !userCode.trim()) {
+            let outputDiv = document.getElementById("console-output");
+            
+            if (!userCode.trim()) {
                 alert("Пожалуйста, напиши код!");
                 return;
             }
 
-            let btn = document.getElementById("runBtn");
-            btn.innerText = "Выполняется... ⏳";
-            btn.disabled = true;
+            // Переключаемся на окно результата
+            document.getElementById("editor-screen").classList.remove("active");
+            document.getElementById("output-screen").classList.add("active");
+            outputDiv.innerText = "Выполняю... ⏳";
 
-            // Безопасный метод отправки данных обратно боту, разрешенный Telegram
-            tg.sendData(userCode);
-            
-            // Закрываем мини-приложение, результат сразу отобразится в чате
-            tg.close();
+            if (!pyodideInstance) {
+                outputDiv.innerText = "Подождите, Python ещё загружается...";
+                return;
+            }
+
+            try {
+                // Перехватываем стандартный print()
+                pyodideInstance.runPython(`
+                    import sys
+                    import io
+                    sys.stdout = io.StringIO()
+                `);
+                
+                // Исправляем автоматическую заглавную букву Print от телефона
+                let fixedCode = userCode.replace(/Print\s*\(/g, "print(");
+                
+                // Запускаем код пользователя
+                await pyodideInstance.runPythonAsync(fixedCode);
+                
+                // Получаем результат работы print()
+                let stdout = pyodideInstance.runPython("sys.stdout.getvalue()");
+                outputDiv.innerText = stdout || "Код выполнился успешно, но ничего не вывел (используйте print()).";
+            } catch (err) {
+                outputDiv.innerText = "❌ Ошибка в коде:\n" + err.message;
+            }
+        }
+
+        function goBack() {
+            // Переключаемся обратно на экран с кодом
+            document.getElementById("output-screen").classList.remove("active");
+            document.getElementById("editor-screen").classList.add("active");
         }
     </script>
 </body>
