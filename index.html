@@ -3,36 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Моё Мини Приложение</title>
+    <title>Моя Консоль Кода</title>
     <script src="https://telegram.org"></script>
     <style>
         body {
-            background-color: var(--tg-theme-bg-color, #ffffff);
-            color: var(--tg-theme-text-color, #000000);
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 50px 20px;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 15px;
+            margin: 0;
+        }
+        h3 { color: #4fc1ff; text-align: center; margin-top: 0; }
+        textarea {
+            width: 100%;
+            height: 250px;
+            background-color: #2d2d2d;
+            color: #9cdcfe;
+            border: 1px solid #3c3c3c;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 14px;
+            box-sizing: border-box;
+            resize: none;
         }
         button {
-            background-color: var(--tg-theme-button-color, #2481cc);
-            color: var(--tg-theme-button-text-color, #ffffff);
+            width: 100%;
+            background-color: #0e639c;
+            color: white;
             border: none;
-            padding: 15px 30px;
-            border-radius: 8px;
-            font-size: 18px;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 15px;
             cursor: pointer;
-            margin-top: 20px;
+        }
+        button:active { background-color: #1177bb; }
+        #output {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #252526;
+            border-left: 4px solid #6a9955;
+            font-size: 13px;
+            white-space: pre-wrap;
+            display: none;
         }
     </style>
 </head>
 <body>
-    <h1>Привет! Это Твоё Web App 👋</h1>
-    <p>Оно работает прямо внутри Telegram.</p>
-    <button onclick="tg.close()">Закрыть приложение</button>
+
+    <h3>💻 Введи свой Python-код:</h3>
+    
+    <!-- Поле, куда пользователь будет писать код -->
+    <textarea id="codeArea" placeholder="print('Привет, мир!')&#10;a = 5&#10;b = 10&#10;print('Сумма:', a + b)"></textarea>
+    
+    <button onclick="runCode()">Запустить код 🚀</button>
+
+    <div id="output" id="outputBlock"></div>
 
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
+
+        function runCode() {
+            let userCode = document.getElementById("codeArea").value;
+            
+            if (!userCode.trim()) {
+                alert("Пожалуйста, напиши хоть какой-то код!");
+                return;
+            }
+
+            // Отправляем написанный код обратно боту в чат
+            tg.sendData(userCode);
+            
+            // Закрываем мини-приложение, чтобы пользователь увидел результат выполнения у бота
+            tg.close();
+        }
     </script>
 </body>
 </html>
+
