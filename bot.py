@@ -7,7 +7,7 @@ BOT_TOKEN = "8617201086:AAFQqfmLrzcSBmKj-rwPb9eGgCo2qt7ok1U"
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # Новая версия v=85 для сброса кэша
-WEB_APP_URL = "https://jxjxjdjxjxxjshs-stack.github.io/Tg-python-bot/index.html?v=150"
+WEB_APP_URL = "https://jxjxjdjxjxxjshs-stack.github.io/Tg-python-bot/index.html?v=350"
 
 @bot.message_handler(commands=['start'])
 def start(message):
