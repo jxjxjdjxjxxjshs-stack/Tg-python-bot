@@ -3,17 +3,18 @@ import sys
 import io
 import telebot
 from telebot import types
-from flask import Flask, request, jsonify
+from flask import Flask
 
 # Токен вашего бота
 BOT_TOKEN = "8617201086:AAFQqfmLrzcSBmKj-rwPb9eGgCo2qt7ok1U"
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Ссылка на ваше мини-приложение (сбрасываем кэш версией v=9)
-WEB_APP_URL = "https://jxjxjdjxjxxjshs-stack.github.io/Tg-python-bot//index.html?v=11"
+# Ваша абсолютно правильная ссылка без пробелов и сбросом кэша
+WEB_APP_URL = "https://jxjxjdjxjxxjshs-stack.github.io/Tg-python-bot/?v=15"
 
 @bot.message_handler(commands=['start'])
 def start(message):
+    # Создаем инлайн-кнопку прямо в сообщении (с неё отправка данных ВСЕГДА работает)
     inline_markup = types.InlineKeyboardMarkup()
     web_app = types.WebAppInfo(WEB_APP_URL)
     inline_btn = types.InlineKeyboardButton(text="Открыть консоль кода 💻", web_app=web_app)
@@ -21,48 +22,41 @@ def start(message):
     
     bot.send_message(
         message.chat.id, 
-        f"Привет, {message.from_user.first_name}! Открой консоль, напиши код, и я запущу его на сервере.", 
+        f"Привет, {message.from_user.first_name}! Открой консоль по синей кнопке ниже, напиши код, и я запущу его на сервере.", 
         reply_markup=inline_markup
     )
+
+# Ловим код, который пользователь отправил кнопкой из мини-приложения
+@bot.message_handler(content_types=['web_app_data'])
+def answer(message):
+    user_code = message.web_app_data.data
+    bot.send_message(message.chat.id, "Выполняю твой код... ⏳")
+    
+    old_stdout = sys.stdout
+    redirected_output = sys.stdout = io.StringIO()
+    
+    try:
+        # Авто-исправление заглавной буквы Print (на случай автозамены в телефоне)
+        fixed_code = user_code.replace("Print", "print")
+        
+        # Запуск кода на сервере
+        exec(fixed_code)
+        
+        sys.stdout = old_stdout
+        result = redirected_output.getvalue()
+        if not result:
+            result = "Код выполнился успешно, но ничего не вывел. Используй print(), чтобы увидеть текст."
+    except Exception as e:
+        sys.stdout = old_stdout
+        result = f"❌ Ошибка в коде:\n{str(e)}"
+    
+    bot.send_message(message.chat.id, f"📝 Результат выполнения:\n\n```\n{result}\n```", parse_mode="Markdown")
 
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Бот и сервер запущены!"
-
-# ИСПРАВЛЕНО: Теперь метод POST указан абсолютно верно
-@app.route('/run-code', methods=['POST'])
-def run_code_endpoint():
-    try:
-        data = request.json
-        user_code = data.get('code', '')
-        user_id = data.get('user_id')
-        
-        if not user_id:
-            return jsonify({"status": "error", "message": "No user_id"}), 400
-            
-        bot.send_message(user_id, "Выполняю твой код... ⏳")
-        
-        old_stdout = sys.stdout
-        redirected_output = sys.stdout = io.StringIO()
-        
-        try:
-            # Исправляем заглавную букву Print, если телефон ввёл её автоматически
-            fixed_code = user_code.replace("Print", "print")
-            exec(fixed_code)
-            sys.stdout = old_stdout
-            result = redirected_output.getvalue()
-            if not result:
-                result = "Код выполнился успешно, но ничего не вывел (используй print())."
-        except Exception as e:
-            sys.stdout = old_stdout
-            result = f"❌ Ошибка в коде:\n{str(e)}"
-        
-        bot.send_message(user_id, f"📝 Результат выполнения:\n\n```\n{result}\n```", parse_mode="Markdown")
-        return jsonify({"status": "success"})
-    except Exception as global_e:
-        return jsonify({"status": "error", "message": str(global_e)}), 500
+    return "Бот работает!"
 
 if __name__ == '__main__':
     import threading
