@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Python IDE</title>
+    <!-- Подключаем скрипт Telegram и супер-легкий Python -->
     <script src="https://telegram.org"></script>
+    <script src="https://jsdelivr.net"></script>
+    <script src="https://jsdelivr.net"></script>
     <style>
         body {
             background-color: #1e1e1e;
@@ -71,7 +74,7 @@
     <div id="editor-screen" class="screen active">
         <h3>💻 Введи свой Python-код:</h3>
         <textarea id="codeArea" placeholder="print('hello')"></textarea>
-        <button id="runBtn" onclick="runCode()">Запустить код 🚀</button>
+        <button id="runBtn" onclick="runPythonCode()">Запустить код 🚀</button>
     </div>
 
     <!-- ЭКРАН 2: РЕЗУЛЬТАТ -->
@@ -85,7 +88,13 @@
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        function runCode() {
+        function builtinRead(x) {
+            if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
+                throw "File not found: '" + x + "'";
+            return Sk.builtinFiles["files"][x];
+        }
+
+        function runPythonCode() {
             let userCode = document.getElementById("codeArea").value;
             let outputDiv = document.getElementById("console-output");
 
@@ -94,24 +103,31 @@
                 return;
             }
 
-            // Включаем экран вывода
+            // Мгновенное переключение экрана
             document.getElementById("editor-screen").classList.remove("active");
             document.getElementById("output-screen").classList.add("active");
-            outputDiv.innerText = "Запускаю код на сервере Render... ⏳";
+            outputDiv.innerText = "";
 
-            // Отправляем код на сервер Render (он сам определит адрес, где запущен бот)
-            fetch('/api/run', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: userCode })
-            })
-            .then(response => response.json())
-            .then(data => {
-                // Отображаем то, что вернул print() прямо в черном окне!
-                outputDiv.innerText = data.output;
-            })
-            .catch(err => {
-                outputDiv.innerText = "❌ Ошибка соединения с сервером. Попробуйте еще раз через 10 секунд.";
+            // Настройка вывода текста
+            Sk.configure({
+                output: function(text) {
+                    outputDiv.innerText += text;
+                },
+                read: builtinRead
+            });
+
+            // Исправляем автоматическую заглавную букву Print от телефона
+            let fixedCode = userCode.replace(/Print\s*\(/g, "print(");
+
+            // Мгновенный запуск Python прямо на телефоне
+            Sk.misceval.asyncToPromise(function() {
+                return Sk.importMainWithBody("<stdin>", false, fixedCode, true);
+            }).then(function(mod) {
+                if (outputDiv.innerText === "") {
+                    outputDiv.innerText = "Код успешно выполнен, но ничего не вывел (используйте print()).";
+                }
+            }, function(err) {
+                outputDiv.innerText = "❌ Ошибка в коде:\n" + err.toString();
             });
         }
 
