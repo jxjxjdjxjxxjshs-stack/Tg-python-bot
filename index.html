@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Python IDE</title>
-    <!-- Подключаем скрипт Telegram и супер-легкий Python -->
     <script src="https://telegram.org"></script>
-    <script src="https://jsdelivr.net"></script>
-    <script src="https://jsdelivr.net"></script>
+    <!-- Подключаем стабильные и быстрые скрипты Python -->
+    <script src="https://cloudflare.com"></script>
+    <script src="https://cloudflare.com"></script>
     <style>
         body {
             background-color: #1e1e1e;
@@ -27,7 +27,7 @@
             border: 1px solid #3c3c3c;
             border-radius: 6px;
             padding: 10px;
-            font-size: 14px;
+            font-size: 16px;
             box-sizing: border-box;
             resize: none;
         }
@@ -36,8 +36,8 @@
             background-color: #0e639c;
             color: white;
             border: none;
-            padding: 12px;
-            border-radius: 6px;
+            padding: 14px;
+            border-radius: 8px;
             font-size: 16px;
             font-weight: bold;
             margin-top: 15px;
@@ -53,24 +53,26 @@
             font-weight: normal;
             width: auto;
             display: inline-block;
+            border-radius: 4px;
         }
         #console-output {
             width: 100%;
             min-height: 250px;
             background-color: #000000;
-            color: #d4d4d4;
+            color: #00ff00; /* Хакерский зеленый цвет */
             padding: 15px;
             border-radius: 6px;
             box-sizing: border-box;
             white-space: pre-wrap;
             overflow-y: auto;
             border: 1px solid #333;
+            font-size: 15px;
         }
     </style>
 </head>
 <body>
 
-    <!-- ЭКРАН 1: РЕДАКТОР -->
+    <!-- ЭКРАН 1: ВВОД КОДА -->
     <div id="editor-screen" class="screen active">
         <h3>💻 Введи свой Python-код:</h3>
         <textarea id="codeArea" placeholder="print('hello')"></textarea>
@@ -103,12 +105,12 @@
                 return;
             }
 
-            // Мгновенное переключение экрана
+            // Переключаем экран на результат
             document.getElementById("editor-screen").classList.remove("active");
             document.getElementById("output-screen").classList.add("active");
             outputDiv.innerText = "";
 
-            // Настройка вывода текста
+            // Настраиваем перехват вывода print()
             Sk.configure({
                 output: function(text) {
                     outputDiv.innerText += text;
@@ -116,22 +118,25 @@
                 read: builtinRead
             });
 
-            // Исправляем автоматическую заглавную букву Print от телефона
-            let fixedCode = userCode.replace(/Print\s*\(/g, "print(");
+            // Авто-исправление заглавной буквы Print от телефона
+            let fixedCode = userCode.replace(/Print/g, "print");
 
-            // Мгновенный запуск Python прямо на телефоне
+            // Запускаем Python прямо внутри смартфона
             Sk.misceval.asyncToPromise(function() {
                 return Sk.importMainWithBody("<stdin>", false, fixedCode, true);
             }).then(function(mod) {
                 if (outputDiv.innerText === "") {
-                    outputDiv.innerText = "Код успешно выполнен, но ничего не вывел (используйте print()).";
+                    outputDiv.innerText = "ℹ️ Код выполнен успешно, но ничего не вывел.\nИспользуйте print('текст'), чтобы увидеть результат.";
                 }
             }, function(err) {
-                outputDiv.innerText = "❌ Ошибка в коде:\n" + err.toString();
+                // Если в коде ошибка — подсветим её красным
+                outputDiv.style.color = "#ff4d4d";
+                outputDiv.innerText = "❌ Ошибка в Python коде:\n\n" + err.toString();
             });
         }
 
         function goBack() {
+            document.getElementById("console-output").style.color = "#00ff00";
             document.getElementById("output-screen").classList.remove("active");
             document.getElementById("editor-screen").classList.add("active");
         }
