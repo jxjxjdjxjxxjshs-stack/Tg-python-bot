@@ -5,9 +5,11 @@ import telebot
 from telebot import types
 from flask import Flask
 
+# Токен вашего бота
 BOT_TOKEN = "8617201086:AAFQqfmLrzcSBmKj-rwPb9eGgCo2qt7ok1U"
 bot = telebot.TeleBot(BOT_TOKEN)
 
+# ИСПРАВЛЕННАЯ ССЫЛКА (ведет сразу на Web App, минуя интерфейс гитхаба)
 WEB_APP_URL = "https://github.io"
 
 @bot.message_handler(commands=['start'])
@@ -23,33 +25,26 @@ def start(message):
         reply_markup=markup
     )
 
-# Ловим данные, которые пользователь отправил из мини-приложения кнопкой "Запустить код"
+# Обработка кода, пришедшего из мини-приложения
 @bot.message_handler(content_types=['web_app_data'])
 def answer(message):
     user_code = message.web_app_data.data
-    
     bot.send_message(message.chat.id, "Выполняю твой код... ⏳")
     
-    # Безопасный перехват текста, который выведет функция print() в коде пользователя
     old_stdout = sys.stdout
     redirected_output = sys.stdout = io.StringIO()
     
     try:
-        # ЗАПУСК КУСКА КОДА, КОТОРЫЙ НАПИСАЛ ПОЛЬЗОВАТЕЛЬ
         exec(user_code)
         sys.stdout = old_stdout
         result = redirected_output.getvalue()
-        
         if not result:
-            result = "Код выполнился успешно, но ничего не вывел (используй print(), чтобы увидеть текст)."
-            
+            result = "Код выполнился успешно, но ничего не вывел (используй print())."
     except Exception as e:
         sys.stdout = old_stdout
         result = f"❌ Ошибка в коде:\n{str(e)}"
     
-    # Отправляем результат обратно в чат
     bot.send_message(message.chat.id, f"📝 Результат выполнения:\n\n```\n{result}\n```", parse_mode="Markdown")
-
 
 app = Flask(__name__)
 @app.route('/')
