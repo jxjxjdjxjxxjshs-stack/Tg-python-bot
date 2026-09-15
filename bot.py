@@ -10,7 +10,8 @@ BOT_TOKEN = "8617201086:AAFQqfmLrzcSBmKj-rwPb9eGgCo2qt7ok1U"
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # ИСПРАВЛЕННАЯ ССЫЛКА (ведет сразу на Web App, минуя интерфейс гитхаба)
-WEB_APP_URL = "https://github.io"
+WEB_APP_URL = "https://jxjxjdjxjxxjshs-stack.github.io/Tg-python-bot/"
+
 
 @bot.message_handler(commands=['start'])
 def start(message):
