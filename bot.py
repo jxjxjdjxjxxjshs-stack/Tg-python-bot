@@ -9,7 +9,7 @@ BOT_TOKEN = "8617201086:AAFQqfmLrzcSBmKj-rwPb9eGgCo2qt7ok1U"
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # Новая версия для сброса кэша Telegram
-WEB_APP_URL = "https://jxjxjdjxjxxjshs-stack.github.io/Tg-python-bot/index.html?v=45
+WEB_APP_URL = "https://jxjxjdjxjxxjshs-stack.github.io/Tg-python-bot/index.html?v=60
 "
 
 @bot.message_handler(commands=['start'])
