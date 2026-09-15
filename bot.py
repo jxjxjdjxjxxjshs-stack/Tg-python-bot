@@ -7,7 +7,7 @@ BOT_TOKEN = "8617201086:AAFQqfmLrzcSBmKj-rwPb9eGgCo2qt7ok1U"
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # Меняем версию ссылки на v=20, чтобы Telegram полностью обновил кэш на телефоне
-WEB_APP_URL = "https://jxjxjdjxjxxjshs-stack.github.io/Tg-python-bot/index.html?v=30"
+WEB_APP_URL = "https://jxjxjdjxjxxjshs-stack.github.io/Tg-python-bot/index.html?v=35"
 
 @bot.message_handler(commands=['start'])
 def start(message):
