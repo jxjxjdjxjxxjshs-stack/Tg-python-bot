@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Моя Консоль Кода</title>
+    <!-- Подключаем официальный скрипт Телеграма -->
     <script src="https://telegram.org"></script>
     <style>
         body {
@@ -39,47 +40,39 @@
             cursor: pointer;
         }
         button:active { background-color: #1177bb; }
-        #output {
-            margin-top: 15px;
-            padding: 10px;
-            background-color: #252526;
-            border-left: 4px solid #6a9955;
-            font-size: 13px;
-            white-space: pre-wrap;
-            display: none;
-        }
     </style>
 </head>
 <body>
 
     <h3>💻 Введи свой Python-код:</h3>
     
-    <!-- Поле, куда пользователь будет писать код -->
-    <textarea id="codeArea" placeholder="print('Привет, мир!')&#10;a = 5&#10;b = 10&#10;print('Сумма:', a + b)"></textarea>
+    <textarea id="codeArea" placeholder="print('Привет, мир!')"></textarea>
     
-    <button onclick="runCode()">Запустить код 🚀</button>
-
-    <div id="output" id="outputBlock"></div>
+    <button id="runBtn" onclick="runCode()">Запустить код 🚀</button>
 
     <script>
+        // Инициализируем WebApp Telegram
         let tg = window.Telegram.WebApp;
-        tg.expand();
+        tg.expand(); // Развернуть на весь экран
 
         function runCode() {
-            let userCode = document.getElementById("codeArea").value;
-            
-            if (!userCode.trim()) {
-                alert("Пожалуйста, напиши хоть какой-то код!");
-                return;
-            }
+            try {
+                let userCode = document.getElementById("codeArea").value;
+                
+                if (!userCode || !userCode.trim()) {
+                    alert("Пожалуйста, напиши хоть какой-то код!");
+                    return;
+                }
 
-            // Отправляем написанный код обратно боту в чат
-            tg.sendData(userCode);
-            
-            // Закрываем мини-приложение, чтобы пользователь увидел результат выполнения у бота
-            tg.close();
+                // Отправляем текст боту в чат
+                tg.sendData(userCode);
+                
+                // Закрываем мини-приложение
+                tg.close();
+            } catch (error) {
+                alert("Произошла ошибка WebApp: " + error.message);
+            }
         }
     </script>
 </body>
 </html>
-
