@@ -5,11 +5,12 @@ import telebot
 from telebot import types
 from flask import Flask, request, jsonify
 
+# Токен вашего бота
 BOT_TOKEN = "8617201086:AAFQqfmLrzcSBmKj-rwPb9eGgCo2qt7ok1U"
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Меняем версию на v=8, чтобы Телеграм сбросил кэш
-WEB_APP_URL = "https://jxjxjdjxjxxjshs-stack.github.io/Tg-python-bot/"
+# Ссылка на ваше мини-приложение (сбрасываем кэш версией v=9)
+WEB_APP_URL = "https://jxjxjdjxjxxjshs-stack.github.io/Tg-python-bot//index.html?v=11"
 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -26,40 +27,42 @@ def start(message):
 
 app = Flask(__name__)
 
-# Веб-страница для проверки работоспособности хостинга
 @app.route('/')
 def home():
     return "Бот и сервер запущены!"
 
-# НОВЫЙ ОБРАБОТЧИК: принимает код из мини-приложения по интернету
-@app.route('/run-code', range=['POST'])
+# ИСПРАВЛЕНО: Теперь метод POST указан абсолютно верно
+@app.route('/run-code', methods=['POST'])
 def run_code_endpoint():
-    data = request.json
-    user_code = data.get('code', '')
-    user_id = data.get('user_id')
-    
-    if not user_id:
-        return jsonify({"status": "error", "message": "No user_id"}), 400
-        
-    bot.send_message(user_id, "Выполняю твой код... ⏳")
-    
-    old_stdout = sys.stdout
-    redirected_output = sys.stdout = io.StringIO()
-    
     try:
-        # Авто-исправление заглавной буквы Print, если телефон подставил её сам
-        fixed_code = user_code.replace("Print", "print")
-        exec(fixed_code)
-        sys.stdout = old_stdout
-        result = redirected_output.getvalue()
-        if not result:
-            result = "Код выполнился успешно, но ничего не вывел (используй print())."
-    except Exception as e:
-        sys.stdout = old_stdout
-        result = f"❌ Ошибка в коде:\n{str(e)}"
-    
-    bot.send_message(user_id, f"📝 Результат выполнения:\n\n```\n{result}\n```", parse_mode="Markdown")
-    return jsonify({"status": "success"})
+        data = request.json
+        user_code = data.get('code', '')
+        user_id = data.get('user_id')
+        
+        if not user_id:
+            return jsonify({"status": "error", "message": "No user_id"}), 400
+            
+        bot.send_message(user_id, "Выполняю твой код... ⏳")
+        
+        old_stdout = sys.stdout
+        redirected_output = sys.stdout = io.StringIO()
+        
+        try:
+            # Исправляем заглавную букву Print, если телефон ввёл её автоматически
+            fixed_code = user_code.replace("Print", "print")
+            exec(fixed_code)
+            sys.stdout = old_stdout
+            result = redirected_output.getvalue()
+            if not result:
+                result = "Код выполнился успешно, но ничего не вывел (используй print())."
+        except Exception as e:
+            sys.stdout = old_stdout
+            result = f"❌ Ошибка в коде:\n{str(e)}"
+        
+        bot.send_message(user_id, f"📝 Результат выполнения:\n\n```\n{result}\n```", parse_mode="Markdown")
+        return jsonify({"status": "success"})
+    except Exception as global_e:
+        return jsonify({"status": "error", "message": str(global_e)}), 500
 
 if __name__ == '__main__':
     import threading
