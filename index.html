@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Python IDE</title>
+    <title>Python Интерактивная Консоль</title>
     <script src="https://telegram.org"></script>
-    <!-- Подключаем стабильные и быстрые скрипты Python -->
-    <script src="https://cloudflare.com"></script>
-    <script src="https://cloudflare.com"></script>
+    <!-- Быстрые и надежные скрипты Python-движка -->
+    <script src="https://jsdelivr.net"></script>
+    <script src="https://jsdelivr.net"></script>
     <style>
         body {
             background-color: #1e1e1e;
@@ -55,40 +55,74 @@
             display: inline-block;
             border-radius: 4px;
         }
-        #console-output {
+        
+        /* Стили интерактивного терминала */
+        #terminal {
             width: 100%;
-            min-height: 250px;
+            height: calc(100vh - 140px);
             background-color: #000000;
-            color: #00ff00; /* Хакерский зеленый цвет */
-            padding: 15px;
-            border-radius: 6px;
-            box-sizing: border-box;
-            white-space: pre-wrap;
-            overflow-y: auto;
             border: 1px solid #333;
+            border-radius: 6px;
+            padding: 15px;
+            box-sizing: border-box;
+            overflow-y: auto;
             font-size: 15px;
+        }
+        #console-output {
+            color: #00ff00; /* Зеленый текст */
+            white-space: pre-wrap;
+            display: inline;
+        }
+        .input-line {
+            display: none;
+            align-items: center;
+            margin-top: 5px;
+            width: 100%;
+        }
+        #prompt-text {
+            color: #00ff00;
+            white-space: pre;
+            margin-right: 5px;
+        }
+        #terminal-input {
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 15px;
+            outline: none;
+            flex-grow: 1;
+            padding: 0;
         }
     </style>
 </head>
 <body>
 
-    <!-- ЭКРАН 1: ВВОД КОДА -->
+    <!-- ЭКРАН 1: РЕДАКТОР КОДА -->
     <div id="editor-screen" class="screen active">
-        <h3>💻 Введи свой Python-код:</h3>
-        <textarea id="codeArea" placeholder="print('hello')"></textarea>
-        <button id="runBtn" onclick="runPythonCode()">Запустить код 🚀</button>
+        <h3>💻 Введи любой Python-код:</h3>
+        <textarea id="codeArea" placeholder="print('Привет!')&#10;name = input('Как тебя зовут? ')&#10;print('Привет, ' + name)"></textarea>
+        <button id="runBtn" onclick="startPython()">Запустить код 🚀</button>
     </div>
 
-    <!-- ЭКРАН 2: РЕЗУЛЬТАТ -->
+    <!-- ЭКРАН 2: ИНТЕРАКТИВНЫЙ ТЕРМИНАЛ -->
     <div id="output-screen" class="screen">
         <button class="back-btn" onclick="goBack()">⬅ Назад к коду</button>
-        <h3>📝 Результат выполнения:</h3>
-        <div id="console-output">Выполняю... ⏳</div>
+        <h3>💻 Терминал выполнения:</h3>
+        <div id="terminal" onclick="focusInput()">
+            <div id="console-output">Инициализация...</div>
+            <div id="input-area" class="input-line">
+                <span id="prompt-text"></span>
+                <input type="text" id="terminal-input" autocomplete="off" autofocus />
+            </div>
+        </div>
     </div>
 
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
+
+        let inputResolver = null;
 
         function builtinRead(x) {
             if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
@@ -96,7 +130,51 @@
             return Sk.builtinFiles["files"][x];
         }
 
-        function runPythonCode() {
+        // Перехват команды input() из Python
+        function customInputPrompt(promptText) {
+            return new Promise((resolve) => {
+                let outputDiv = document.getElementById("console-output");
+                let inputArea = document.getElementById("input-area");
+                let promptSpan = document.getElementById("prompt-text");
+                let inputField = document.getElementById("terminal-input");
+
+                // Показываем строку ввода прямо внутри черного терминала
+                promptSpan.innerText = promptText || "";
+                inputField.value = "";
+                inputArea.style.display = "flex";
+                
+                setTimeout(() => inputField.focus(), 50);
+                
+                // Запоминаем функцию, которая вернет текст в Python после нажатия Enter
+                inputResolver = resolve;
+            });
+        }
+
+        // Ловим нажатие Enter в терминале
+        document.getElementById("terminal-input").addEventListener("keydown", function(e) {
+            if (e.key === "Enter") {
+                let value = this.value;
+                let inputArea = document.getElementById("input-area");
+                let promptSpan = document.getElementById("prompt-text");
+                let outputDiv = document.getElementById("console-output");
+
+                // Прячем строку ввода и печатаем введенный текст в общую консоль
+                inputArea.style.display = "none";
+                outputDiv.innerText += promptSpan.innerText + value + "\n";
+
+                if (inputResolver) {
+                    let resolveTemp = inputResolver;
+                    inputResolver = null;
+                    resolveTemp(value); // Передаем значение обратно в выполняющийся Python-код
+                }
+            }
+        });
+
+        function focusInput() {
+            document.getElementById("terminal-input").focus();
+        }
+
+        function startPython() {
             let userCode = document.getElementById("codeArea").value;
             let outputDiv = document.getElementById("console-output");
 
@@ -105,40 +183,43 @@
                 return;
             }
 
-            // Переключаем экран на результат
+            // Мгновенно переключаем экран на терминал
             document.getElementById("editor-screen").classList.remove("active");
             document.getElementById("output-screen").classList.add("active");
             outputDiv.innerText = "";
+            outputDiv.style.color = "#00ff00";
 
-            // Настраиваем перехват вывода print()
             Sk.configure({
                 output: function(text) {
                     outputDiv.innerText += text;
+                    let term = document.getElementById("terminal");
+                    term.scrollTop = term.scrollHeight; // Скролл вниз
                 },
-                read: builtinRead
+                read: builtinRead,
+                inputfun: customInputPrompt, // Привязали наш интерактивный ввод данных
+                inputisvisible: true
             });
 
             // Авто-исправление заглавной буквы Print от телефона
             let fixedCode = userCode.replace(/Print/g, "print");
 
-            // Запускаем Python прямо внутри смартфона
             Sk.misceval.asyncToPromise(function() {
                 return Sk.importMainWithBody("<stdin>", false, fixedCode, true);
             }).then(function(mod) {
-                if (outputDiv.innerText === "") {
-                    outputDiv.innerText = "ℹ️ Код выполнен успешно, но ничего не вывел.\nИспользуйте print('текст'), чтобы увидеть результат.";
+                if (outputDiv.innerText === "" && !inputResolver) {
+                    outputDiv.innerText = "ℹ️ Код выполнен успешно, но ничего не вывел.";
                 }
             }, function(err) {
-                // Если в коде ошибка — подсветим её красным
                 outputDiv.style.color = "#ff4d4d";
-                outputDiv.innerText = "❌ Ошибка в Python коде:\n\n" + err.toString();
+                outputDiv.innerText += "\n❌ Ошибка в коде:\n" + err.toString();
             });
         }
 
         function goBack() {
-            document.getElementById("console-output").style.color = "#00ff00";
             document.getElementById("output-screen").classList.remove("active");
             document.getElementById("editor-screen").classList.add("active");
+            document.getElementById("input-area").style.display = "none";
+            inputResolver = null;
         }
     </script>
 </body>
