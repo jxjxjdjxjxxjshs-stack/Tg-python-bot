@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Python IDE</title>
     <script src="https://telegram.org"></script>
+    <!-- Подключаем быстрые скрипты официального Python-движка -->
+    <script src="https://jsdelivr.net"></script>
+    <script src="https://jsdelivr.net"></script>
     <style>
         body {
             background-color: #1e1e1e;
@@ -56,7 +59,7 @@
             width: 100%;
             min-height: 350px;
             background-color: #000000;
-            color: #00ff00;
+            color: #00ff00; /* Зеленый текст */
             padding: 15px;
             border-radius: 6px;
             box-sizing: border-box;
@@ -72,14 +75,14 @@
     <!-- ЭКРАН 1: ВВОД КОДА -->
     <div id="editor-screen" class="screen active">
         <h3>💻 Введи свой Python-код:</h3>
-        <textarea id="codeArea" placeholder="print('Привет!')"></textarea>
-        <button id="runBtn" onclick="runPythonInsidePhone()">Запустить код 🚀</button>
+        <textarea id="codeArea" placeholder="print('hello')"></textarea>
+        <button id="runBtn" onclick="runRealPython()">Запустить код 🚀</button>
     </div>
 
-    <!-- ЭКРАН 2: ФИНАЛЬНОЕ ОКНО ВЫВОДА -->
+    <!-- ЭКРАН 2: РЕЗУЛЬТАТ -->
     <div id="output-screen" class="screen">
         <button class="back-btn" onclick="goBack()">⬅ Назад к коду</button>
-        <h3>💻 Терминал выполнения:</h3>
+        <h3>📝 Результат выполнения:</h3>
         <div id="console-output">Выполняю... ⏳</div>
     </div>
 
@@ -87,10 +90,13 @@
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        // По умолчанию вставим рабочий код калькулятора, чтобы вы сразу проверили инпуты
-        document.getElementById("codeArea").value = "print('--- СУПЕР КАЛЬКУЛЯТОР ---')\na = input('Введите число А: ')\nb = input('Введите число Б: ')\nprint('Результат сложения:', int(a) + int(b))";
+        function builtinRead(x) {
+            if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
+                throw "File not found: '" + x + "'";
+            return Sk.builtinFiles["files"][x];
+        }
 
-        function runPythonInsidePhone() {
+        function runRealPython() {
             let userCode = document.getElementById("codeArea").value;
             let outputDiv = document.getElementById("console-output");
 
@@ -99,62 +105,40 @@
                 return;
             }
 
-            // Мгновенно переключаем экран на финальное окно вывода (0 секунд задержки)
+            // Мгновенно переключаем экран
             document.getElementById("editor-screen").classList.remove("active");
             document.getElementById("output-screen").classList.add("active");
             outputDiv.innerText = "";
             outputDiv.style.color = "#00ff00";
 
-            let lines = userCode.split('\n');
-            let jsLines = [];
-            let variables = {};
-
-            // Создаем функции имитации команд Python
-            window.pyInput = function(promptText) {
-                return prompt(promptText ? promptText.replace(/['"]/g, '') : "Введите значение:") || "0";
-            };
-            window.pyInt = function(val) {
-                return parseInt(val, 10) || 0;
-            };
-
-            // Переводим базовый Python в быстрый JavaScript
-            for (let line of lines) {
-                let trimmed = line.trim();
-                if (!trimmed) continue;
-
-                if (trimmed.startsWith("print(") && trimmed.endsWith(")")) {
-                    let inside = trimmed.substring(6, trimmed.length - 1);
-                    inside = inside.replace(/int\(/g, "window.pyInt(");
-                    jsLines.push(`document.getElementById("console-output").innerText += (${inside}) + "\\n";`);
-                } 
-                else if (trimmed.includes("=") && trimmed.includes("input(")) {
-                    let parts = trimmed.split("=");
-                    let varName = parts[0].trim();
-                    let inputPart = parts[1].trim();
-                    let promptMatch = inputPart.match(/input\((.*)\)/);
-                    let promptText = promptMatch ? promptMatch[1] : "''";
-                    jsLines.push(`var ${varName} = window.pyInput(${promptText});`);
-                } 
-                else if (trimmed.includes("=") && !trimmed.includes("input(")) {
-                    jsLines.push(`var ${line};`);
+            // Настраиваем перехват вывода print()
+            Sk.configure({
+                output: function(text) {
+                    outputDiv.innerText += text;
+                },
+                read: builtinRead,
+                // Настраиваем встроенный input() через всплывающие окна
+                inputfun: function(promptText) {
+                    return prompt(promptText) || "0";
                 }
-            }
+            });
 
-            try {
-                let finalJs = jsLines.join("\n");
-                if (!finalJs) {
-                    outputDiv.innerText = "ℹ️ Код выполнен, но команд print() не найдено.";
-                    return;
+            // Запускаем полноценный Python
+            Sk.misceval.asyncToPromise(function() {
+                return Sk.importMainWithBody("<stdin>", false, userCode, true);
+            }).then(function(mod) {
+                if (outputDiv.innerText === "") {
+                    outputDiv.innerText = "ℹ️ Код выполнен успешно, но ничего не вывел.";
                 }
-                // Выполняем код мгновенно на самом устройстве
-                new Function(finalJs)();
-            } catch (err) {
+            }, function(err) {
+                // Если пользователь ошибся — выводим красивую понятную ошибку Python
                 outputDiv.style.color = "#ff4d4d";
-                outputDiv.innerText = "❌ Ошибка синтаксиса.\nПроверьте правильность написания print() и input().";
-            }
+                outputDiv.innerText = "❌ Ошибка в коде:\n\n" + err.toString();
+            });
         }
 
         function goBack() {
+            document.getElementById("console-output").style.color = "#00ff00";
             document.getElementById("output-screen").classList.remove("active");
             document.getElementById("editor-screen").classList.add("active");
         }
