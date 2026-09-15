@@ -58,32 +58,15 @@
                 return;
             }
 
-            // Получаем ID пользователя Telegram, чтобы бот знал, кому слать ответ
-            let userId = tg.initDataUnsafe?.user?.id;
-            if (!userId) {
-                alert("Ошибка: Не удалось определить ваш Telegram ID. Откройте приложение внутри бота.");
-                return;
-            }
-
             let btn = document.getElementById("runBtn");
             btn.innerText = "Выполняется... ⏳";
             btn.disabled = true;
 
-            // Отправляем код напрямую на ваш сервер Render по интернету
-            fetch('/run-code', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: userCode, user_id: userId })
-            })
-            .then(() => {
-                // Закрываем приложение — результат уже летит в чат боту!
-                tg.close();
-            })
-            .catch(err => {
-                alert("Ошибка отправки кода на сервер");
-                btn.innerText = "Запустить код 🚀";
-                btn.disabled = false;
-            });
+            // Безопасный метод отправки данных обратно боту, разрешенный Telegram
+            tg.sendData(userCode);
+            
+            // Закрываем мини-приложение, результат сразу отобразится в чате
+            tg.close();
         }
     </script>
 </body>
