@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Python IDE</title>
     <script src="https://telegram.org"></script>
-    <script src="https://jsdelivr.net"></script>
     <style>
         body {
             background-color: #1e1e1e;
@@ -46,6 +45,8 @@
             cursor: pointer;
         }
         button:active { background-color: #1177bb; }
+        
+        /* Стили для экрана с результатом */
         .back-btn {
             background-color: #333333;
             color: #4fc1ff;
@@ -58,7 +59,7 @@
         }
         #console-output {
             width: 100%;
-            min-height: 200px;
+            min-height: 250px;
             background-color: #000000;
             color: #d4d4d4;
             padding: 15px;
@@ -72,87 +73,46 @@
 </head>
 <body>
 
-    <!-- ЭКРАН 1: ВВОД КОДА -->
+    <!-- ЭКРАН 1: РЕДАКТОР КОДА -->
     <div id="editor-screen" class="screen active">
         <h3>💻 Введи свой Python-код:</h3>
-        <textarea id="codeArea" placeholder="print('Привет!')"></textarea>
-        <button id="runBtn" onclick="runPython()">Запустить код 🚀</button>
+        <textarea id="codeArea" placeholder="print('Привет, мир!')"></textarea>
+        <button id="runBtn" onclick="sendCodeToServer()">Запустить код 🚀</button>
     </div>
 
-    <!-- ЭКРАН 2: РЕЗУЛЬТАТ ВЫПОЛНЕНИЯ -->
+    <!-- ЭКРАН 2: РЕЗУЛЬТАТЫ (ОТКРЫВАЕТСЯ ПО КНОПКЕ) -->
     <div id="output-screen" class="screen">
         <button class="back-btn" onclick="goBack()">⬅ Назад к коду</button>
         <h3>📝 Результат выполнения:</h3>
-        <div id="console-output">Загрузка консоли Python...</div>
+        <div id="console-output">Ожидание ответа от сервера...</div>
     </div>
 
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
-        
-        let pyodideInstance = null;
 
-        // Запуск встроенного Python
-        initPython();
-        async function initPython() {
-            try {
-                pyodideInstance = await loadPyodide();
-                console.log("Python готов!");
-            } catch (e) {
-                document.getElementById("console-output").innerText = "Ошибка загрузки Python.";
-            }
-        }
-
-        async function runPython() {
+        function sendCodeToServer() {
             let userCode = document.getElementById("codeArea").value;
             let outputDiv = document.getElementById("console-output");
-            
+
             if (!userCode.trim()) {
                 alert("Пожалуйста, напиши код!");
                 return;
             }
 
-            // Переключаем экраны
+            // Переключаем экран на окно результата внутри приложения
             document.getElementById("editor-screen").classList.remove("active");
             document.getElementById("output-screen").classList.add("active");
-            outputDiv.innerText = "Выполняю... ⏳";
+            outputDiv.innerText = "Код отправлен боту в чат... ⏳\n\nВы можете оставаться здесь или вернуться назад для редактирования.";
 
-            if (!pyodideInstance) {
-                outputDiv.innerText = "Подождите пару секунд, Python ещё загружается...";
-                return;
-            }
-
-            try {
-                // Настраиваем вывод print()
-                pyodideInstance.runPython(`
-                    import sys
-                    import io
-                    sys.stdout = io.StringIO()
-                `);
-                
-                // Исправляем заглавную букву Print от телефона
-                let fixedCode = userCode.replace(/Print\s*\(/g, "print(");
-                
-                // Выполняем код
-                await pyodideInstance.runPythonAsync(fixedCode);
-                
-                // Забираем результат
-                let stdout = pyodideInstance.runPython("sys.stdout.getvalue()");
-                outputDiv.innerText = stdout || "Код выполнился успешно, но ничего не вывел (используйте print()).";
-            } catch (err) {
-                outputDiv.innerText = "❌ Ошибка в коде:\n" + err.message;
-            }
+            // Отправляем код боту в чат Telegram
+            tg.sendData(userCode);
         }
 
         function goBack() {
-            // Возвращаемся на экран ввода кода
+            // Возвращаемся обратно на экран ввода кода
             document.getElementById("output-screen").classList.remove("active");
             document.getElementById("editor-screen").classList.add("active");
-            
-            // Восстанавливаем кнопку запуска
-            let btn = document.getElementById("runBtn");
-            btn.innerText = "Запустить код 🚀";
-            btn.disabled = false;
         }
     </script>
 </body>
